@@ -4,16 +4,17 @@
 .PRECIOUS:
 .SECONDARY:
 
-pic_obj := main.o
+cft_obj := main.o
 
-roms := pic.gbc
+roms := cft.gbc
 
-all: pic.gbc
+all: cft.gbc
 
 clean:
-	rm -f $(roms) $(pic_obj) $(roms:.gbc=.map) $(roms:.gbc=.sym)
+	rm $(roms) $(cft_obj) $(roms:.gbc=.map) $(roms:.gbc=.sym) # gbmh.2bpp
 
-pic.gbc:
+cft.gbc: main.asm
+# 	rgbgfx -o gbmh.2bpp gbmh.png
 	rgbasm -o main.o main.asm
-	rgblink -n pic.sym -m pic.map -o pic.gbc main.o 
-	rgbfix -Cjv -i SNDM -k 01 -l 0x33 -m 0x00 -p 0 -r 0 -t TEST170917 pic.gbc
+	rgblink -n cft.sym -m cft.map -o cft.gbc main.o 
+	rgbfix -Cjv -i SNDM -k 01 -l 0x33 -m 0x0F -p 0 -r 0 -t COLORFIGHT cft.gbc

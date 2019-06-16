@@ -1,25 +1,64 @@
 ; Graciously aped from http://nocash.emubase.de/pandocs.htm .
 
+; Joypad
+A_BUTTON_F EQU 0
+B_BUTTON_F EQU 1
+SELECT_F   EQU 2
+START_F    EQU 3
+D_RIGHT_F  EQU 4
+D_LEFT_F   EQU 5
+D_UP_F     EQU 6
+D_DOWN_F   EQU 7
+NO_INPUT   EQU %00000000
+A_BUTTON   EQU 1 << A_BUTTON_F
+B_BUTTON   EQU 1 << B_BUTTON_F
+SELECT     EQU 1 << SELECT_F
+START      EQU 1 << START_F
+D_RIGHT    EQU 1 << D_RIGHT_F
+D_LEFT     EQU 1 << D_LEFT_F
+D_UP       EQU 1 << D_UP_F
+D_DOWN     EQU 1 << D_DOWN_F
+
+BUTTONS    EQU A_BUTTON | B_BUTTON | SELECT | START
+D_PAD      EQU D_RIGHT | D_LEFT | D_UP | D_DOWN
+
+R_DPAD     EQU %00100000
+R_BUTTONS  EQU %00010000
+
+; VRAM
+TILE_SIZE      EQU $10
+TILE_PIXEL_X   EQU 8
+TILE_PIXEL_Y   EQU 8
+SCREEN_X       EQU 20
+SCREEN_Y       EQU 18
+SCREEN_PIXEL_X EQU SCREEN_X * TILE_PIXEL_X
+SCREEN_PIXEL_Y EQU SCREEN_Y * TILE_PIXEL_Y
+
+TILE_SET  EQU $8000
+MAP_SET   EQU $9800
+MAP_SET_X EQU $20
+MAP_SET_Y EQU $20
+
 ; MBC3
-; MBC3SRamEnable EQU $0000
-; MBC3RomBank    EQU $2000
-; MBC3SRamBank   EQU $4000
-; MBC3LatchClock EQU $6000
-; MBC3RTC        EQU $a000
-; 
-; SRAM_DISABLE EQU $00
-; SRAM_ENABLE  EQU $0a
-; 
-; NUM_SRAM_BANKS EQU 4
-; 
-; RTC_S  EQU $08 ; Seconds   0-59 (0-3Bh)
-; RTC_M  EQU $09 ; Minutes   0-59 (0-3Bh)
-; RTC_H  EQU $0a ; Hours     0-23 (0-17h)
-; RTC_DL EQU $0b ; Lower 8 bits of Day Counter (0-FFh)
-; RTC_DH EQU $0c ; Upper 1 bit of Day Counter, Carry Bit, Halt Flag
-;         ; Bit 0  Most significant bit of Day Counter (Bit 8)
-;         ; Bit 6  Halt (0=Active, 1=Stop Timer)
-;         ; Bit 7  Day Counter Carry Bit (1=Counter Overflow)
+MBC3SRamEnable EQU $0000
+MBC3RomBank    EQU $2000
+MBC3SRamBank   EQU $4000
+MBC3LatchClock EQU $6000
+MBC3RTC        EQU $a000
+
+SRAM_DISABLE EQU $00
+SRAM_ENABLE  EQU $0a
+
+NUM_SRAM_BANKS EQU 4
+
+RTC_S  EQU $08 ; Seconds   0-59 (0-3Bh)
+RTC_M  EQU $09 ; Minutes   0-59 (0-3Bh)
+RTC_H  EQU $0a ; Hours     0-23 (0-17h)
+RTC_DL EQU $0b ; Lower 8 bits of Day Counter (0-FFh)
+RTC_DH EQU $0c ; Upper 1 bit of Day Counter, Carry Bit, Halt Flag
+        ; Bit 0  Most significant bit of Day Counter (Bit 8)
+        ; Bit 6  Halt (0=Active, 1=Stop Timer)
+        ; Bit 7  Day Counter Carry Bit (1=Counter Overflow)
 
 ; interrupt flags
 VBLANK   EQU 0
