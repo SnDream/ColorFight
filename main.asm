@@ -1,4 +1,4 @@
-INCLUDE "gbhw.asm"
+INCLUDE "hardware.inc"
 
 DEF BORDER_LOOP = 1
 
@@ -9,11 +9,7 @@ DEF DEBUG = 0
 
 SECTION "Work RAM 0", WRAM0
 wTileSet:
-    ds $1000
-
-SECTION "Work RAM 1", WRAMX
-wTileSet_wram1:
-    ds SCREEN_X * SCREEN_Y * TILE_SIZE - $1000
+    ds SCREEN_WIDTH * SCREEN_HEIGHT * TILE_SIZE
 
 ; wTileSet_pad:
 ;     ds $18 * TILE_SIZE
@@ -115,7 +111,7 @@ VBlank_2:
     set 4, [hl]
     ldh a, [hVblankLoop]
     inc a
-    cp a, SCREEN_Y / VBLANK_LINE
+    cp a, SCREEN_HEIGHT / VBLANK_LINE
     jr c, .not_border
     xor a
 .not_border
@@ -134,13 +130,13 @@ VBlank_2:
     ldh [rHDMA1], a
     ld a, l
     ldh [rHDMA2], a
-    ld hl, TILE_SET
+    ld hl, TILEBLOCK0
     add hl, bc
     ld a, h
     ldh [rHDMA3], a
     ld a, l
     ldh [rHDMA4], a
-    ld a, (SCREEN_X * VBLANK_LINE) - 1
+    ld a, (SCREEN_WIDTH * VBLANK_LINE) - 1
     ldh [rHDMA5], a
 
 ; Random from Joypad
@@ -150,7 +146,7 @@ VBlank_2:
     ldh [hRandomOffset], a
     add a, LOW(hRandomNum)
     ld c, a
-    ld a, R_DPAD
+    ld a, JOYP_GET_CTRL_PAD
     ldh [rJOYP], a
     ldh a, [rJOYP]
     ldh a, [rJOYP]
@@ -158,7 +154,7 @@ VBlank_2:
     and $f
     swap a
     ld b, a
-    ld a, R_BUTTONS
+    ld a, JOYP_GET_BUTTONS
     ldh [rJOYP], a
 rept 6
     ldh a, [rJOYP]
@@ -177,8 +173,8 @@ endr
     reti
 .y_addr
 DEF tmp = 0
-rept SCREEN_Y / VBLANK_LINE
-    dw TILE_SIZE * SCREEN_X * VBLANK_LINE * tmp
+rept SCREEN_HEIGHT / VBLANK_LINE
+    dw TILE_SIZE * SCREEN_WIDTH * VBLANK_LINE * tmp
 DEF tmp = tmp + 1
 endr
 
@@ -212,11 +208,11 @@ _Start::
     ldh [hCFScreenPixelX], a
     ldh [hCFScreenPixelY], a
     ldh [hVblankLoop], a
-    ld a, 1 << VBLANK | 1 << LCD_STAT
+    ld a, IE_VBLANK | IE_STAT
     ldh [rIE]  , a
     ld a, 5
     ldh [rTMA], a
-    ld a, 1 << rTAC_ON | rTAC_262144_HZ
+    ld a, TAC_START | TAC_262KHZ
     ldh [rTAC], a
     ld sp, wStack
 
@@ -278,46 +274,46 @@ endc
 
 InitRandom:
     ld a, $0A
-    ld [MBC3SRamEnable], a
+    ld [rRAMG], a
     ld c, LOW(hRandomNum)
 
     xor a
-    ld [MBC3LatchClock], a
+    ld [rRTCLATCH], a
     inc a
-    ld [MBC3LatchClock], a
+    ld [rRTCLATCH], a
 
-    ld a, RTC_S
+    ld a, RAMB_RTC_S
 .loop
-    ld [MBC3SRamBank], a
+    ld [rRAMB], a
     push af
-    ld a, [MBC3RTC]
+    ld a, [rRTCREG]
     ldh [c], a
     inc c
     pop af
     inc a
-    cp a, RTC_DH
+    cp a, RAMB_RTC_DH
     jr c, .loop
     
-    ld [MBC3SRamBank], a
+    ld [rRAMB], a
     nop
     xor a
-    ld [MBC3RTC], a
+    ld [rRTCREG], a
  
     xor a
-    ld [MBC3LatchClock], a
+    ld [rRTCLATCH], a
     inc a
-    ld [MBC3LatchClock], a
+    ld [rRTCLATCH], a
 
     xor a
-    ld [MBC3SRamEnable], a
+    ld [rRAMG], a
     ret
 
 InitMap:
-    ld hl, MAP_SET
-    ld de, MAP_SET_X - SCREEN_X
-    ld b, SCREEN_Y
+    ld hl, TILEMAP0
+    ld de, TILEMAP_WIDTH - SCREEN_WIDTH
+    ld b, SCREEN_HEIGHT
 .writeTileMap1
-    ld c, SCREEN_X
+    ld c, SCREEN_WIDTH
 .writeTileMap2
     push af
     ld a, 1
@@ -336,9 +332,9 @@ InitMap:
     ret
 
 InitTile:
-    ld hl, TILE_SET
-    ld bc, SCREEN_X * SCREEN_Y * TILE_SIZE
-    ld de, wTileSet - TILE_SET
+    ld hl, TILEBLOCK0
+    ld bc, SCREEN_WIDTH * SCREEN_HEIGHT * TILE_SIZE
+    ld de, wTileSet - TILEBLOCK0
 .writeTileData
     rst 00
     ; ld a, $FF
@@ -378,13 +374,13 @@ InitColor:
 GetRandomPoint:
 .loop1
     rst 00
-    cp a, SCREEN_PIXEL_X
+    cp a, SCREEN_WIDTH_PX
     jr nc, .loop1
     ldh [hCFScreenPixelX], a
     ld b, a
 .loop2
     rst 00
-    cp a, SCREEN_PIXEL_Y
+    cp a, SCREEN_HEIGHT_PX
     jr nc, .loop2
     ldh [hCFScreenPixelY], a
     ld c, a
@@ -433,7 +429,7 @@ Point2TileSet:
 .y_addr
 DEF tmp = 0
 rept 18
-    dw wTileSet + TILE_SIZE * SCREEN_X * tmp
+    dw wTileSet + TILE_SIZE * SCREEN_WIDTH * tmp
 DEF tmp = tmp + 1
 endr
 .x_mask
@@ -474,7 +470,7 @@ PointUp:
 if BORDER_LOOP == 0
     xor a
 else
-    ld a, SCREEN_PIXEL_Y - 1
+    ld a, SCREEN_HEIGHT_PX - 1
 endc
 .not_border
     ld c, a
@@ -489,7 +485,7 @@ endc
 PointDown:
     ldh a, [hCFScreenPixelY]
     inc a
-    cp a, SCREEN_PIXEL_Y
+    cp a, SCREEN_HEIGHT_PX
     jr c, .not_border
 if BORDER_LOOP == 0
     dec a
@@ -521,7 +517,7 @@ if BORDER_LOOP == 0
     ld e, a
     ret
 else
-    ld a, SCREEN_PIXEL_X - 1
+    ld a, SCREEN_WIDTH_PX - 1
 endc
 .not_border
     ld b, a
@@ -538,7 +534,7 @@ endc
 PointRight:
     ldh a, [hCFScreenPixelX]
     inc a
-    cp a, SCREEN_PIXEL_X
+    cp a, SCREEN_WIDTH_PX
     jr c, .not_border
 if BORDER_LOOP == 0
     dec a
