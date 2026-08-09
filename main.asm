@@ -1,11 +1,11 @@
 INCLUDE "gbhw.asm"
 
-BORDER_LOOP EQU 1
+DEF BORDER_LOOP = 1
 
-INIT_HRAM EQU 0
-INIT_WRAM EQU 0
+DEF INIT_HRAM = 0
+DEF INIT_WRAM = 0
 
-DEBUG EQU 0
+DEF DEBUG = 0
 
 SECTION "Work RAM 0", WRAM0
 wTileSet:
@@ -105,7 +105,7 @@ SECTION "joypad", ROM0[$60]
     rst $38
 
 SECTION "vblank_2", ROM0[$68]
-VBLANK_LINE EQU 6
+DEF VBLANK_LINE = 6
 VBlank_2:
     push af
     push bc
@@ -176,10 +176,10 @@ endr
     pop af
     reti
 .y_addr
-tmp set 0
+DEF tmp = 0
 rept SCREEN_Y / VBLANK_LINE
     dw TILE_SIZE * SCREEN_X * VBLANK_LINE * tmp
-tmp set tmp + 1
+DEF tmp = tmp + 1
 endr
 
 SECTION "Header", ROM0[$100]
@@ -273,6 +273,7 @@ endc
     jp ColorFight
 .loop
     halt
+    nop
     jr .loop
 
 InitRandom:
@@ -353,7 +354,7 @@ InitTile:
     jr nz, .writeTileData
     ret
 
-setcolor: MACRO
+MACRO setcolor
     ld a, LOW(\1)
     ldh [rBGPD], a
     ld a, HIGH(\1)
@@ -430,16 +431,16 @@ Point2TileSet:
     pop hl
     ret
 .y_addr
-tmp set 0
+DEF tmp = 0
 rept 18
     dw wTileSet + TILE_SIZE * SCREEN_X * tmp
-tmp set tmp + 1
+DEF tmp = tmp + 1
 endr
 .x_mask
-tmp set 0
+DEF tmp = 0
 rept 8
     db 1 << (7 - tmp)
-tmp set tmp + 1
+DEF tmp = tmp + 1
 endr
 
 Point2Color:

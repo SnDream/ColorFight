@@ -1,169 +1,169 @@
 ; Graciously aped from http://nocash.emubase.de/pandocs.htm .
 
 ; Joypad
-A_BUTTON_F EQU 0
-B_BUTTON_F EQU 1
-SELECT_F   EQU 2
-START_F    EQU 3
-D_RIGHT_F  EQU 4
-D_LEFT_F   EQU 5
-D_UP_F     EQU 6
-D_DOWN_F   EQU 7
-NO_INPUT   EQU %00000000
-A_BUTTON   EQU 1 << A_BUTTON_F
-B_BUTTON   EQU 1 << B_BUTTON_F
-SELECT     EQU 1 << SELECT_F
-START      EQU 1 << START_F
-D_RIGHT    EQU 1 << D_RIGHT_F
-D_LEFT     EQU 1 << D_LEFT_F
-D_UP       EQU 1 << D_UP_F
-D_DOWN     EQU 1 << D_DOWN_F
+DEF A_BUTTON_F = 0
+DEF B_BUTTON_F = 1
+DEF SELECT_F   = 2
+DEF START_F    = 3
+DEF D_RIGHT_F  = 4
+DEF D_LEFT_F   = 5
+DEF D_UP_F     = 6
+DEF D_DOWN_F   = 7
+DEF NO_INPUT   = %00000000
+DEF A_BUTTON   = 1 << A_BUTTON_F
+DEF B_BUTTON   = 1 << B_BUTTON_F
+DEF SELECT     = 1 << SELECT_F
+DEF START      = 1 << START_F
+DEF D_RIGHT    = 1 << D_RIGHT_F
+DEF D_LEFT     = 1 << D_LEFT_F
+DEF D_UP       = 1 << D_UP_F
+DEF D_DOWN     = 1 << D_DOWN_F
 
-BUTTONS    EQU A_BUTTON | B_BUTTON | SELECT | START
-D_PAD      EQU D_RIGHT | D_LEFT | D_UP | D_DOWN
+DEF BUTTONS    = A_BUTTON | B_BUTTON | SELECT | START
+DEF D_PAD      = D_RIGHT | D_LEFT | D_UP | D_DOWN
 
-R_DPAD     EQU %00100000
-R_BUTTONS  EQU %00010000
+DEF R_DPAD     = %00100000
+DEF R_BUTTONS  = %00010000
 
 ; VRAM
-TILE_SIZE      EQU $10
-TILE_PIXEL_X   EQU 8
-TILE_PIXEL_Y   EQU 8
-SCREEN_X       EQU 20
-SCREEN_Y       EQU 18
-SCREEN_PIXEL_X EQU SCREEN_X * TILE_PIXEL_X
-SCREEN_PIXEL_Y EQU SCREEN_Y * TILE_PIXEL_Y
+DEF TILE_SIZE      = $10
+DEF TILE_PIXEL_X   = 8
+DEF TILE_PIXEL_Y   = 8
+DEF SCREEN_X       = 20
+DEF SCREEN_Y       = 18
+DEF SCREEN_PIXEL_X = SCREEN_X * TILE_PIXEL_X
+DEF SCREEN_PIXEL_Y = SCREEN_Y * TILE_PIXEL_Y
 
-TILE_SET  EQU $8000
-MAP_SET   EQU $9800
-MAP_SET_X EQU $20
-MAP_SET_Y EQU $20
+DEF TILE_SET  = $8000
+DEF MAP_SET   = $9800
+DEF MAP_SET_X = $20
+DEF MAP_SET_Y = $20
 
 ; MBC3
-MBC3SRamEnable EQU $0000
-MBC3RomBank    EQU $2000
-MBC3SRamBank   EQU $4000
-MBC3LatchClock EQU $6000
-MBC3RTC        EQU $a000
+DEF MBC3SRamEnable = $0000
+DEF MBC3RomBank    = $2000
+DEF MBC3SRamBank   = $4000
+DEF MBC3LatchClock = $6000
+DEF MBC3RTC        = $a000
 
-SRAM_DISABLE EQU $00
-SRAM_ENABLE  EQU $0a
+DEF SRAM_DISABLE = $00
+DEF SRAM_ENABLE  = $0a
 
-NUM_SRAM_BANKS EQU 4
+DEF NUM_SRAM_BANKS = 4
 
-RTC_S  EQU $08 ; Seconds   0-59 (0-3Bh)
-RTC_M  EQU $09 ; Minutes   0-59 (0-3Bh)
-RTC_H  EQU $0a ; Hours     0-23 (0-17h)
-RTC_DL EQU $0b ; Lower 8 bits of Day Counter (0-FFh)
-RTC_DH EQU $0c ; Upper 1 bit of Day Counter, Carry Bit, Halt Flag
+DEF RTC_S  = $08 ; Seconds   0-59 (0-3Bh)
+DEF RTC_M  = $09 ; Minutes   0-59 (0-3Bh)
+DEF RTC_H  = $0a ; Hours     0-23 (0-17h)
+DEF RTC_DL = $0b ; Lower 8 bits of Day Counter (0-FFh)
+DEF RTC_DH = $0c ; Upper 1 bit of Day Counter, Carry Bit, Halt Flag
         ; Bit 0  Most significant bit of Day Counter (Bit 8)
         ; Bit 6  Halt (0=Active, 1=Stop Timer)
         ; Bit 7  Day Counter Carry Bit (1=Counter Overflow)
 
 ; interrupt flags
-VBLANK   EQU 0
-LCD_STAT EQU 1
-TIMER    EQU 2
-SERIAL   EQU 3
-JOYPAD   EQU 4
+DEF VBLANK   = 0
+DEF LCD_STAT = 1
+DEF TIMER    = 2
+DEF SERIAL   = 3
+DEF JOYPAD   = 4
 
 ; OAM attribute flags
-OAM_PALETTE   EQU %111
-OAM_TILE_BANK EQU 3
-OAM_OBP_NUM   EQU 4 ; Non CGB Mode Only
-OAM_X_FLIP    EQU 5
-OAM_Y_FLIP    EQU 6
-OAM_PRIORITY  EQU 7 ; 0: OBJ above BG, 1: OBJ behind BG (colors 1-3)
+DEF OAM_PALETTE   = %111
+DEF OAM_TILE_BANK = 3
+DEF OAM_OBP_NUM   = 4 ; Non CGB Mode Only
+DEF OAM_X_FLIP    = 5
+DEF OAM_Y_FLIP    = 6
+DEF OAM_PRIORITY  = 7 ; 0: OBJ above BG, 1: OBJ behind BG (colors 1-3)
 
 
 ; Hardware registers
-rJOYP       EQU $ff00 ; Joypad (R/W)
-rSB         EQU $ff01 ; Serial transfer data (R/W)
-rSC         EQU $ff02 ; Serial Transfer Control (R/W)
-rSC_ON    EQU 7
-rSC_CGB   EQU 1
-rSC_CLOCK EQU 0
-rDIV        EQU $ff04 ; Divider Register (R/W)
-rTIMA       EQU $ff05 ; Timer counter (R/W)
-rTMA        EQU $ff06 ; Timer Modulo (R/W)
-rTAC        EQU $ff07 ; Timer Control (R/W)
-rTAC_ON        EQU 2
-rTAC_4096_HZ   EQU 0
-rTAC_262144_HZ EQU 1
-rTAC_65536_HZ  EQU 2
-rTAC_16384_HZ  EQU 3
-rIF         EQU $ff0f ; Interrupt Flag (R/W)
-rNR10       EQU $ff10 ; Channel 1 Sweep register (R/W)
-rNR11       EQU $ff11 ; Channel 1 Sound length/Wave pattern duty (R/W)
-rNR12       EQU $ff12 ; Channel 1 Volume Envelope (R/W)
-rNR13       EQU $ff13 ; Channel 1 Frequency lo (Write Only)
-rNR14       EQU $ff14 ; Channel 1 Frequency hi (R/W)
-rNR20       EQU $ff15 ; Channel 2 Sweep register (R/W)
-rNR21       EQU $ff16 ; Channel 2 Sound Length/Wave Pattern Duty (R/W)
-rNR22       EQU $ff17 ; Channel 2 Volume Envelope (R/W)
-rNR23       EQU $ff18 ; Channel 2 Frequency lo data (W)
-rNR24       EQU $ff19 ; Channel 2 Frequency hi data (R/W)
-rNR30       EQU $ff1a ; Channel 3 Sound on/off (R/W)
-rNR31       EQU $ff1b ; Channel 3 Sound Length
-rNR32       EQU $ff1c ; Channel 3 Select output level (R/W)
-rNR33       EQU $ff1d ; Channel 3 Frequency's lower data (W)
-rNR34       EQU $ff1e ; Channel 3 Frequency's higher data (R/W)
-rNR40       EQU $ff1f ; Channel 4 Sweep register (R/W)
-rNR41       EQU $ff20 ; Channel 4 Sound Length (R/W)
-rNR42       EQU $ff21 ; Channel 4 Volume Envelope (R/W)
-rNR43       EQU $ff22 ; Channel 4 Polynomial Counter (R/W)
-rNR44       EQU $ff23 ; Channel 4 Counter/consecutive; Inital (R/W)
-rNR50       EQU $ff24 ; Channel control / ON-OFF / Volume (R/W)
-rNR51       EQU $ff25 ; Selection of Sound output terminal (R/W)
-rNR52       EQU $ff26 ; Sound on/off
-rWave_0     EQU $ff30
-rWave_1     EQU $ff31
-rWave_2     EQU $ff32
-rWave_3     EQU $ff33
-rWave_4     EQU $ff34
-rWave_5     EQU $ff35
-rWave_6     EQU $ff36
-rWave_7     EQU $ff37
-rWave_8     EQU $ff38
-rWave_9     EQU $ff39
-rWave_a     EQU $ff3a
-rWave_b     EQU $ff3b
-rWave_c     EQU $ff3c
-rWave_d     EQU $ff3d
-rWave_e     EQU $ff3e
-rWave_f     EQU $ff3f
-rLCDC       EQU $ff40 ; LCD Control (R/W)
-rSTAT       EQU $ff41 ; LCDC Status (R/W)
-rSCY        EQU $ff42 ; Scroll Y (R/W)
-rSCX        EQU $ff43 ; Scroll X (R/W)
-rLY         EQU $ff44 ; LCDC Y-Coordinate (R)
-rLYC        EQU $ff45 ; LY Compare (R/W)
-rDMA        EQU $ff46 ; DMA Transfer and Start Address (W)
-rBGP        EQU $ff47 ; BG Palette Data (R/W) - Non CGB Mode Only
-rOBP0       EQU $ff48 ; Object Palette 0 Data (R/W) - Non CGB Mode Only
-rOBP1       EQU $ff49 ; Object Palette 1 Data (R/W) - Non CGB Mode Only
-rWY         EQU $ff4a ; Window Y Position (R/W)
-rWX         EQU $ff4b ; Window X Position minus 7 (R/W)
-rLCDMODE    EQU $ff4c
-rKEY1       EQU $ff4d ; CGB Mode Only - Prepare Speed Switch
-rVBK        EQU $ff4f ; CGB Mode Only - VRAM Bank
-rBLCK       EQU $ff50
-rHDMA1      EQU $ff51 ; CGB Mode Only - New DMA Source, High
-rHDMA2      EQU $ff52 ; CGB Mode Only - New DMA Source, Low
-rHDMA3      EQU $ff53 ; CGB Mode Only - New DMA Destination, High
-rHDMA4      EQU $ff54 ; CGB Mode Only - New DMA Destination, Low
-rHDMA5      EQU $ff55 ; CGB Mode Only - New DMA Length/Mode/Start
-rRP         EQU $ff56 ; CGB Mode Only - Infrared Communications Port
-rBGPI       EQU $ff68 ; CGB Mode Only - Background Palette Index
-rBGPD       EQU $ff69 ; CGB Mode Only - Background Palette Data
-rOBPI       EQU $ff6a ; CGB Mode Only - Sprite Palette Index
-rOBPD       EQU $ff6b ; CGB Mode Only - Sprite Palette Data
-rUNKNOWN1   EQU $ff6c ; (FEh) Bit 0 (Read/Write) - CGB Mode Only
-rSVBK       EQU $ff70 ; CGB Mode Only - WRAM Bank
-rUNKNOWN2   EQU $ff72 ; (00h) - Bit 0-7 (Read/Write)
-rUNKNOWN3   EQU $ff73 ; (00h) - Bit 0-7 (Read/Write)
-rUNKNOWN4   EQU $ff74 ; (00h) - Bit 0-7 (Read/Write) - CGB Mode Only
-rUNKNOWN5   EQU $ff75 ; (8Fh) - Bit 4-6 (Read/Write)
-rUNKNOWN6   EQU $ff76 ; (00h) - Always 00h (Read Only)
-rUNKNOWN7   EQU $ff77 ; (00h) - Always 00h (Read Only)
-rIE         EQU $ffff ; Interrupt Enable (R/W)
+DEF rJOYP       = $ff00 ; Joypad (R/W)
+DEF rSB         = $ff01 ; Serial transfer data (R/W)
+DEF rSC         = $ff02 ; Serial Transfer Control (R/W)
+DEF rSC_ON    = 7
+DEF rSC_CGB   = 1
+DEF rSC_CLOCK = 0
+DEF rDIV        = $ff04 ; Divider Register (R/W)
+DEF rTIMA       = $ff05 ; Timer counter (R/W)
+DEF rTMA        = $ff06 ; Timer Modulo (R/W)
+DEF rTAC        = $ff07 ; Timer Control (R/W)
+DEF rTAC_ON        = 2
+DEF rTAC_4096_HZ   = 0
+DEF rTAC_262144_HZ = 1
+DEF rTAC_65536_HZ  = 2
+DEF rTAC_16384_HZ  = 3
+DEF rIF         = $ff0f ; Interrupt Flag (R/W)
+DEF rNR10       = $ff10 ; Channel 1 Sweep register (R/W)
+DEF rNR11       = $ff11 ; Channel 1 Sound length/Wave pattern duty (R/W)
+DEF rNR12       = $ff12 ; Channel 1 Volume Envelope (R/W)
+DEF rNR13       EQU $ff13 ; Channel 1 Fr=ency lo (Write Only)
+DEF rNR14       EQU $ff14 ; Channel 1 Fr=ency hi (R/W)
+DEF rNR20       = $ff15 ; Channel 2 Sweep register (R/W)
+DEF rNR21       = $ff16 ; Channel 2 Sound Length/Wave Pattern Duty (R/W)
+DEF rNR22       = $ff17 ; Channel 2 Volume Envelope (R/W)
+DEF rNR23       EQU $ff18 ; Channel 2 Fr=ency lo data (W)
+DEF rNR24       EQU $ff19 ; Channel 2 Fr=ency hi data (R/W)
+DEF rNR30       = $ff1a ; Channel 3 Sound on/off (R/W)
+DEF rNR31       = $ff1b ; Channel 3 Sound Length
+DEF rNR32       = $ff1c ; Channel 3 Select output level (R/W)
+DEF rNR33       EQU $ff1d ; Channel 3 Fr=ency's lower data (W)
+DEF rNR34       EQU $ff1e ; Channel 3 Fr=ency's higher data (R/W)
+DEF rNR40       = $ff1f ; Channel 4 Sweep register (R/W)
+DEF rNR41       = $ff20 ; Channel 4 Sound Length (R/W)
+DEF rNR42       = $ff21 ; Channel 4 Volume Envelope (R/W)
+DEF rNR43       = $ff22 ; Channel 4 Polynomial Counter (R/W)
+DEF rNR44       = $ff23 ; Channel 4 Counter/consecutive; Inital (R/W)
+DEF rNR50       = $ff24 ; Channel control / ON-OFF / Volume (R/W)
+DEF rNR51       = $ff25 ; Selection of Sound output terminal (R/W)
+DEF rNR52       = $ff26 ; Sound on/off
+DEF rWave_0     = $ff30
+DEF rWave_1     = $ff31
+DEF rWave_2     = $ff32
+DEF rWave_3     = $ff33
+DEF rWave_4     = $ff34
+DEF rWave_5     = $ff35
+DEF rWave_6     = $ff36
+DEF rWave_7     = $ff37
+DEF rWave_8     = $ff38
+DEF rWave_9     = $ff39
+DEF rWave_a     = $ff3a
+DEF rWave_b     = $ff3b
+DEF rWave_c     = $ff3c
+DEF rWave_d     = $ff3d
+DEF rWave_e     = $ff3e
+DEF rWave_f     = $ff3f
+DEF rLCDC       = $ff40 ; LCD Control (R/W)
+DEF rSTAT       = $ff41 ; LCDC Status (R/W)
+DEF rSCY        = $ff42 ; Scroll Y (R/W)
+DEF rSCX        = $ff43 ; Scroll X (R/W)
+DEF rLY         = $ff44 ; LCDC Y-Coordinate (R)
+DEF rLYC        = $ff45 ; LY Compare (R/W)
+DEF rDMA        = $ff46 ; DMA Transfer and Start Address (W)
+DEF rBGP        = $ff47 ; BG Palette Data (R/W) - Non CGB Mode Only
+DEF rOBP0       = $ff48 ; Object Palette 0 Data (R/W) - Non CGB Mode Only
+DEF rOBP1       = $ff49 ; Object Palette 1 Data (R/W) - Non CGB Mode Only
+DEF rWY         = $ff4a ; Window Y Position (R/W)
+DEF rWX         = $ff4b ; Window X Position minus 7 (R/W)
+DEF rLCDMODE    = $ff4c
+DEF rKEY1       = $ff4d ; CGB Mode Only - Prepare Speed Switch
+DEF rVBK        = $ff4f ; CGB Mode Only - VRAM Bank
+DEF rBLCK       = $ff50
+DEF rHDMA1      = $ff51 ; CGB Mode Only - New DMA Source, High
+DEF rHDMA2      = $ff52 ; CGB Mode Only - New DMA Source, Low
+DEF rHDMA3      = $ff53 ; CGB Mode Only - New DMA Destination, High
+DEF rHDMA4      = $ff54 ; CGB Mode Only - New DMA Destination, Low
+DEF rHDMA5      = $ff55 ; CGB Mode Only - New DMA Length/Mode/Start
+DEF rRP         = $ff56 ; CGB Mode Only - Infrared Communications Port
+DEF rBGPI       = $ff68 ; CGB Mode Only - Background Palette Index
+DEF rBGPD       = $ff69 ; CGB Mode Only - Background Palette Data
+DEF rOBPI       = $ff6a ; CGB Mode Only - Sprite Palette Index
+DEF rOBPD       = $ff6b ; CGB Mode Only - Sprite Palette Data
+DEF rUNKNOWN1   = $ff6c ; (FEh) Bit 0 (Read/Write) - CGB Mode Only
+DEF rSVBK       = $ff70 ; CGB Mode Only - WRAM Bank
+DEF rUNKNOWN2   = $ff72 ; (00h) - Bit 0-7 (Read/Write)
+DEF rUNKNOWN3   = $ff73 ; (00h) - Bit 0-7 (Read/Write)
+DEF rUNKNOWN4   = $ff74 ; (00h) - Bit 0-7 (Read/Write) - CGB Mode Only
+DEF rUNKNOWN5   = $ff75 ; (8Fh) - Bit 4-6 (Read/Write)
+DEF rUNKNOWN6   = $ff76 ; (00h) - Always 00h (Read Only)
+DEF rUNKNOWN7   = $ff77 ; (00h) - Always 00h (Read Only)
+DEF rIE         = $ffff ; Interrupt Enable (R/W)
