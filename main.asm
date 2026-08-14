@@ -1,20 +1,18 @@
 INCLUDE "hardware.inc"
 
-DEF BORDER_LOOP = 1
+DEF BORDER_LOOP = 1 ; not working now
 
 DEF INIT_HRAM = 0
 DEF INIT_WRAM = 0
 
-DEF DEBUG = 0
-
-SECTION "Work RAM 0", WRAM0
+SECTION "Work RAM 0", WRAM0[$C000]
 wTileSet:
     ds SCREEN_WIDTH * SCREEN_HEIGHT * TILE_SIZE
 
-; wTileSet_pad:
-;     ds $18 * TILE_SIZE
+wTileEnd:
+    ds 2
 
-SECTION "Stack", WRAMX[$DF00]
+SECTION "Stack", WRAM0[$D800]
 wStackBottom::
     ds $100 - 1
 wStack::
@@ -26,24 +24,19 @@ hRandomNum:
     ds 4
 hRandomOffset:
     ds 1
-hCFScreenPixelX:
-    ds 1
-hCFScreenPixelY:
-    ds 1
-hCFColor1:
-    ds 1
-hCFColor2:
-    ds 1
 hCFCount:
     ds 1
 hVblankLoop:
     ds 1
+hCenterMark:
+    ds 1
 
 SECTION "rst00", ROM0[$00]
+; random -> a
+; hl -> broken
+; bc -> broken
 rst00:
 GetRandom:
-    push bc
-    push hl
     ld hl, rDIV
     ld c, LOW(hRandomNum)
 
@@ -72,8 +65,6 @@ GetRandom:
 
     xor a, b
 
-    pop hl
-    pop bc
     ret
 
 SECTION "rst38", ROM0[$38]
@@ -106,6 +97,9 @@ VBlank_2:
     push af
     push bc
     push hl
+
+    xor a
+    ldh [hCFCount], a
 
     ld hl, rLCDC
     set 4, [hl]
@@ -175,7 +169,7 @@ endr
 DEF tmp = 0
 rept SCREEN_HEIGHT / VBLANK_LINE
     dw TILE_SIZE * SCREEN_WIDTH * VBLANK_LINE * tmp
-DEF tmp = tmp + 1
+DEF tmp += 1
 endr
 
 SECTION "Header", ROM0[$100]
@@ -183,30 +177,31 @@ SECTION "Header", ROM0[$100]
 Start::
     nop
     jp _Start
+Header::
+    ds $150 - @
 
-SECTION "Home", ROM0[$150]
+SECTION "Init Entry", ROM0
 
 _Start::
     di
-    cp a, $11
+    cp a, BOOTUP_A_CGB
     jp nz, .stop
     ld hl, rKEY1
     set 0, [hl]
     xor a
     ldh [rIF], a
     ldh [rIE], a
-    ld a, $30
+    ld a, JOYP_GET
     ldh [rJOYP], a
 .stop
-    stop ; rgbasm adds a nop after this instruction by default
+    stop
+    nop
 
     xor a
     ldh [rSCY], a
     ldh [rSCX], a
     ldh [rNR52], a
     ldh [rIF] , a
-    ldh [hCFScreenPixelX], a
-    ldh [hCFScreenPixelY], a
     ldh [hVblankLoop], a
     ld a, IE_VBLANK | IE_STAT
     ldh [rIE]  , a
@@ -272,6 +267,8 @@ endc
     nop
     jr .loop
 
+SECTION "Init Random", ROM0
+
 InitRandom:
     ld a, $0A
     ld [rRAMG], a
@@ -308,6 +305,8 @@ InitRandom:
     ld [rRAMG], a
     ret
 
+SECTION "Init Map", ROM0
+
 InitMap:
     ld hl, TILEMAP0
     ld de, TILEMAP_WIDTH - SCREEN_WIDTH
@@ -331,14 +330,20 @@ InitMap:
     jr nz, .writeTileMap1
     ret
 
+SECTION "Init Tile", ROM0
+
 InitTile:
     ld hl, TILEBLOCK0
     ld bc, SCREEN_WIDTH * SCREEN_HEIGHT * TILE_SIZE
     ld de, wTileSet - TILEBLOCK0
 .writeTileData
+    push bc
+    push hl
     rst 00
     ; ld a, $FF
     ; xor a
+    pop hl
+    pop bc
     push hl
     add hl, de
     ld [hl], a
@@ -350,10 +355,24 @@ InitTile:
     jr nz, .writeTileData
     ret
 
+
+SECTION "Init Color", ROM0
+
 MACRO setcolor
     ld a, LOW(\1)
     ldh [rBGPD], a
     ld a, HIGH(\1)
+    ldh [rBGPD], a
+ENDM
+
+MACRO setcolor_rgb888
+DEF _setclor_r = (((\1) >> 16) >> 3) & %11111
+DEF _setclor_g = (((\1) >>  8) >> 3) & %11111
+DEF _setclor_b = (((\1) >>  0) >> 3) & %11111
+DEF _setclor_bgr555 = _setclor_b << 10 | _setclor_g << 5 | _setclor_r
+    ld a, LOW(_setclor_bgr555)
+    ldh [rBGPD], a
+    ld a, HIGH(_setclor_bgr555)
     ldh [rBGPD], a
 ENDM
 
@@ -364,215 +383,439 @@ InitColor:
     ld a, %10000000
     ldh [rBGPI], a
 
-    setcolor %0000000000011111 ; Red
-    setcolor %0000001111100000 ; Green
-    setcolor %0111110000000000 ; Blue
-    setcolor %0000001111111111 ; Yellow
-
+    setcolor_rgb888 $eec39a
+    setcolor_rgb888 $5b6ee1
+    setcolor_rgb888 $df7126
+    setcolor_rgb888 $222034
     ret
 
-GetRandomPoint:
-.loop1
-    rst 00
-    cp a, SCREEN_WIDTH_PX
-    jr nc, .loop1
-    ldh [hCFScreenPixelX], a
-    ld b, a
-.loop2
-    rst 00
-    cp a, SCREEN_HEIGHT_PX
-    jr nc, .loop2
-    ldh [hCFScreenPixelY], a
-    ld c, a
-    ret
 
-Point2TileSet:
-    ld a, c
-    and a, %11111000
-    rrca
-    rrca
-    ld d, 0
+SECTION "Color Fight", ROM0
+RandomPos:
+.retry2
+    rst 00
+    and $FE
     ld e, a
-    ld hl, .y_addr
-    add hl, de
+.retry
+    rst 00
+
+DEF POS_MAX = wTileEnd - wTileSet
+    ; println "POS_MAX {x:POS_MAX}"
+    cp a, HIGH(POS_MAX) << 3 | %000
+    jr c, .ok
+    cp a, HIGH(POS_MAX) << 3 | %111 + 1
+    jr nc, .retry
+    bit 7, e
+    jr nz, .retry2
+.ok
+    ld d, a
+    and %111
+    ld b, a
+    xor d
+    rrca
+    rrca
+    rrca
+    ld d, a
+    ret
+
+GetWayMapPos:
+    ld [rROMB], a
+    ld l, e
+    ld a, d
+    or $40
+    ld h, a
     ld a, [hli]
     ld h, [hl]
     ld l, a
-    ld a, b
-    and a, %01111000
-    rlca
-    ld e, a
-    ld a, b
-    and a, %10000000
-    rlca
-    ld d, a
-    add hl, de
-    ld a, c
-    and a, %00000111
-    rlca
-    ld d, 0
-    ld e, a
-    add hl, de
-    push hl
-    ld a, b
-    and a, %00000111
-    ; ld d, 0
-    ld e, a
-    ld hl, .x_mask
-    add hl, de
-    ld a, [hl]
-    ld b, a
-    cpl
-    ld c, a
-    pop hl
-    ret
-.y_addr
-DEF tmp = 0
-rept 18
-    dw wTileSet + TILE_SIZE * SCREEN_WIDTH * tmp
-DEF tmp = tmp + 1
-endr
-.x_mask
-DEF tmp = 0
-rept 8
-    db 1 << (7 - tmp)
-DEF tmp = tmp + 1
-endr
-
-Point2Color:
-    call Point2TileSet
-    ld a, [hli]
-    and b
-    ldh [hCFColor1], a
-    ld a, [hl]
-    and b
-    ldh [hCFColor2], a
     ret
 
-Color2Point:
-    push de
-    call Point2TileSet
-    pop de
-    ld a, [hl]
-    and c
-    or d
-    ld [hli], a
-    ld a, [hl]
-    and c
-    or e
-    ld [hl], a
-    ret
-
-PointUp:
-    ldh a, [hCFScreenPixelY]
-    sub a, 1
-    jr nc, .not_border
-if BORDER_LOOP == 0
-    xor a
-else
-    ld a, SCREEN_HEIGHT_PX - 1
-endc
-.not_border
-    ld c, a
-    ldh a, [hCFScreenPixelX]
-    ld b, a
-    ldh a, [hCFColor1]
-    ld d, a
-    ldh a, [hCFColor2]
-    ld e, a
-    ret
-
-PointDown:
-    ldh a, [hCFScreenPixelY]
-    inc a
-    cp a, SCREEN_HEIGHT_PX
-    jr c, .not_border
-if BORDER_LOOP == 0
-    dec a
-else
-    xor a
-endc
-.not_border
-    ld c, a
-    ldh a, [hCFScreenPixelX]
-    ld b, a
-    ldh a, [hCFColor1]
-    ld d, a
-    ldh a, [hCFColor2]
-    ld e, a
-    ret
-
-PointLeft:
-    ldh a, [hCFScreenPixelX]
-    sub a, 1
-    jr nc, .not_border
-if BORDER_LOOP == 0
-    xor a
-    ld b, a
-    ldh a, [hCFScreenPixelY]
-    ld c, a
-    ldh a, [hCFColor1]
-    ld d, a
-    ldh a, [hCFColor2]
-    ld e, a
-    ret
-else
-    ld a, SCREEN_WIDTH_PX - 1
-endc
-.not_border
-    ld b, a
-    ldh a, [hCFScreenPixelY]
-    ld c, a
-    ldh a, [hCFColor1]
-    rlca
-    ld d, a
-    ldh a, [hCFColor2]
-    rlca
-    ld e, a
-    ret
-
-PointRight:
-    ldh a, [hCFScreenPixelX]
-    inc a
-    cp a, SCREEN_WIDTH_PX
-    jr c, .not_border
-if BORDER_LOOP == 0
-    dec a
-    ld b, a
-    ldh a, [hCFScreenPixelY]
-    ld c, a
-    ldh a, [hCFColor1]
-    ld d, a
-    ldh a, [hCFColor2]
-    ld e, a
-    ret
-else
-    xor a
-endc
-.not_border
-    ld b, a
-    ldh a, [hCFScreenPixelY]
-    ld c, a
-    ldh a, [hCFColor1]
-    rrca
-    ld d, a
-    ldh a, [hCFColor2]
-    rrca
-    ld e, a
-    ret
+MACRO AlignTable
+IF STRLWR("\2") !== "l"
+    ld l, \2
+ENDC
+    ld h, HIGH(\1)
+    ld \3, [hl]
+ENDM
 
 ColorFight:
 .loop
-    call GetRandomPoint
-    call Point2Color
-    call PointUp
-    call Color2Point
-    call PointLeft
-    call Color2Point
-    call PointRight
-    call Color2Point
-    call PointDown
-    call Color2Point
     ld hl, hCFCount
     inc [hl]
-    jr .loop
+    call RandomPos
+    ; b -> BitPos
+    ; de -> MapPos
+
+    AlignTable BtsTable, b, c
+    AlignTable CenterTableSet, b, a
+    cp %11000000
+    jr nz, .not_mark_left
+    set 5, b
+.not_mark_left
+    cp %00000011
+    jr nz, .not_mark_right
+    set 4, b
+.not_mark_right
+    ldh [hCenterMark], a
+
+    ld a, d
+    or HIGH(wTileSet) & %11100000
+    ld h, a
+    ld l, e
+    ld a, [hli]
+    and c
+    jr z, .is0_
+.is1_
+    ld a, [hld]
+    and c
+    jp nz, .entry11
+    jp .entry10
+.is0_
+    ld a, [hld]
+    and c
+    jr nz, .entry01
+
+.entry00
+    ldh a, [hCenterMark]
+    cpl
+    and [hl]
+    ld [hli], a
+    ldh a, [hCenterMark]
+    cpl
+    and [hl]
+    ld [hld], a
+
+    ld a, BANK(MapPosUp)
+    call GetWayMapPos
+    ld a, c
+    cpl
+    and [hl]
+    ld [hli], a
+    ld a, c
+    cpl 
+    and [hl]
+    ld [hl], a
+
+    ld a, BANK(MapPosDown)
+    call GetWayMapPos
+    ld a, c
+    cpl
+    and [hl]
+    ld [hli], a
+    ld a, c
+    cpl 
+    and [hl]
+    ld [hl], a
+
+    bit 5, b
+    jr z, .not_left00
+.left00
+    ld a, BANK(MapPosLeft)
+    call GetWayMapPos
+    res 0, [hl]
+    inc hl
+    res 0, [hl]
+.not_left00
+
+    bit 4, b
+    jp z, .loop
+.right00
+    ld a, BANK(MapPosRight)
+    call GetWayMapPos
+    res 7, [hl]
+    inc hl
+    res 7, [hl]
+    jp .loop
+
+.entry01
+    ldh a, [hCenterMark]
+    cpl 
+    and [hl]
+    ld [hli], a
+    ldh a, [hCenterMark]
+    or [hl]
+    ld [hld], a
+
+    ld a, BANK(MapPosUp)
+    call GetWayMapPos
+    ld a, c
+    cpl
+    and [hl]
+    ld [hli], a
+    ld a, c
+    or [hl]
+    ld [hl], a
+
+    ld a, BANK(MapPosDown)
+    call GetWayMapPos
+    ld a, c
+    cpl
+    and [hl]
+    ld [hli], a
+    ld a, c
+    or [hl]
+    ld [hl], a
+
+    bit 5, b
+    jr z, .not_left01
+.left01
+    ld a, BANK(MapPosLeft)
+    call GetWayMapPos
+    res 0, [hl]
+    inc hl
+    set 0, [hl]
+.not_left01
+
+    bit 4, b
+    jp z, .loop
+.right01
+    ld a, BANK(MapPosRight)
+    call GetWayMapPos
+    res 7, [hl]
+    inc hl
+    set 7, [hl]
+    jp .loop
+
+.entry10
+    ldh a, [hCenterMark]
+    or [hl]
+    ld [hli], a
+    ldh a, [hCenterMark]
+    cpl 
+    and [hl]
+    ld [hld], a
+
+    ld a, BANK(MapPosUp)
+    call GetWayMapPos
+    ld a, c
+    or [hl]
+    ld [hli], a
+    ld a, c
+    cpl 
+    and [hl]
+    ld [hl], a
+
+    ld a, BANK(MapPosDown)
+    call GetWayMapPos
+    ld a, c
+    or [hl]
+    ld [hli], a
+    ld a, c
+    cpl 
+    and [hl]
+    ld [hl], a
+
+    bit 5, b
+    jr z, .not_left10
+.left10
+    ld a, BANK(MapPosLeft)
+    call GetWayMapPos
+    set 0, [hl]
+    inc hl
+    res 0, [hl]
+.not_left10
+
+    bit 4, b
+    jp z, .loop
+.right10
+    ld a, BANK(MapPosRight)
+    call GetWayMapPos
+    set 7, [hl]
+    inc hl
+    res 7, [hl]
+    jp .loop
+
+.entry11
+    ldh a, [hCenterMark]
+    or [hl]
+    ld [hli], a
+    ldh a, [hCenterMark]
+    or [hl]
+    ld [hld], a
+
+    ld a, BANK(MapPosUp)
+    call GetWayMapPos
+    ld a, c
+    or [hl]
+    ld [hli], a
+    ld a, c 
+    or [hl]
+    ld [hl], a
+
+    ld a, BANK(MapPosDown)
+    call GetWayMapPos
+    ld a, c
+    or [hl]
+    ld [hli], a
+    ld a, c
+    or [hl]
+    ld [hl], a
+
+    bit 5, b
+    jr z, .not_left11
+.left11
+    ld a, BANK(MapPosLeft)
+    call GetWayMapPos
+    set 0, [hl]
+    inc hl
+    set 0, [hl]
+.not_left11
+
+    bit 4, b
+    jp z, .loop
+.right11
+    ld a, BANK(MapPosRight)
+    call GetWayMapPos
+    set 7, [hl]
+    inc hl
+    set 7, [hl]
+    jp .loop
+
+SECTION "BTS", ROM0, ALIGN[8]
+BtsTable:
+DEF tmp = 0
+REPT 8
+    db 1 << tmp
+    DEF tmp += 1
+ENDR
+
+SECTION "BTS Reserve", ROM0, ALIGN[8]
+BtsTableR:
+DEF tmp = 0
+REPT 8
+    db (1 << tmp) ^ $FF
+    DEF tmp += 1
+ENDR
+
+SECTION "Center Table Set", ROM0, ALIGN[8]
+CenterTableSet:
+DEF tmp = 0
+REPT 8
+    db (((%111) << tmp) >> 1) & $FF
+    DEF tmp += 1
+ENDR
+
+SECTION "Center Table Unset", ROM0, ALIGN[8]
+CenterTableUnset:
+DEF tmp = 0
+REPT 8
+    db ((((%111) << tmp) >> 1) & $FF) ^ $FF
+    DEF tmp += 1
+ENDR
+
+MACRO TXPY2TileSet
+    ; in 1: TILE_X 2: PIXEL_Y
+    ; out: POS_ADDR
+    DEF POS_ADDR = TILE_WIDTH * \1
+    DEF POS_ADDR += \2
+    DEF POS_ADDR += 152 * ( \2 / 8 )
+    DEF POS_ADDR *= 2
+    DEF POS_ADDR += wTileSet
+ENDM
+
+MACRO TileSet2TXPY
+    ; in: POS_ADDR
+    ; out: TILE_X PIXEL_Y
+    DEF POS_ADDR = \1
+    DEF POS_ADDR -= wTileSet
+    DEF POS_ADDR /= 2
+    ; PRINTLN "{d:POS_ADDR}"
+
+    DEF TILE_X = (POS_ADDR / 8) % 20
+    DEF PIXEL_Y = 8 * ((POS_ADDR / 8 ) / 20) + (POS_ADDR % 8)
+ENDM
+
+SECTION "MapPosLeft", ROMX[$4000]
+MapPosLeft:
+DEF POS_CUR = wTileSet
+REPT (wTileEnd - wTileSet) / 2
+    DEF POS_ADDR = POS_CUR
+    TileSet2TXPY POS_ADDR
+    ; PRINTLN "TXPY {d:TILE_X} {d:PIXEL_Y}"
+    IF TILE_X == 0
+    DEF TILE_X = SCREEN_WIDTH
+    ENDC
+    DEF TILE_X -= 1
+    TXPY2TileSet TILE_X, PIXEL_Y
+    
+    ; PRINTLN "CHAR {d:TILE_X} {d:PIXEL_Y} {x:POS_ADDR}"
+    IF POS_ADDR < wTileSet || POS_ADDR >= wTileEnd
+    FAIL "CHAR {d:TILE_X} {d:PIXEL_Y} {x:POS_ADDR}"
+    ENDC
+    dw POS_ADDR
+    DEF POS_CUR += 2
+ENDR
+REPT ($8000 - @) / 2
+    dw wTileEnd
+ENDR
+
+SECTION "MapPosRight", ROMX[$4000]
+MapPosRight:
+DEF POS_CUR = wTileSet
+REPT (wTileEnd - wTileSet) / 2
+    DEF POS_ADDR = POS_CUR
+    TileSet2TXPY POS_ADDR
+    ; PRINTLN "TXPY {d:TILE_X} {d:PIXEL_Y}"
+    DEF TILE_X += 1
+    IF TILE_X == SCREEN_WIDTH
+    DEF TILE_X = 0
+    ENDC
+    TXPY2TileSet TILE_X, PIXEL_Y
+
+    ; PRINTLN "CHAR {d:TILE_X} {d:PIXEL_Y} {x:POS_ADDR}"
+    IF POS_ADDR < wTileSet || POS_ADDR >= wTileEnd
+    FAIL "CHAR {d:TILE_X} {d:PIXEL_Y} {x:POS_ADDR}"
+    ENDC
+    dw POS_ADDR
+    DEF POS_CUR += 2
+ENDR
+REPT ($8000 - @) / 2
+    dw wTileEnd
+ENDR
+
+SECTION "MapPosUp", ROMX[$4000]
+MapPosUp:
+DEF POS_CUR = wTileSet
+REPT (wTileEnd - wTileSet) / 2
+    DEF POS_ADDR = POS_CUR
+    TileSet2TXPY POS_ADDR
+    ; PRINTLN "TXPY {d:TILE_X} {d:PIXEL_Y}"
+    IF PIXEL_Y == 0
+    DEF PIXEL_Y = SCREEN_HEIGHT_PX
+    ENDC
+    DEF PIXEL_Y -= 1
+    TXPY2TileSet TILE_X , PIXEL_Y
+
+    ; PRINTLN "CHAR {d:TILE_X} {d:PIXEL_Y} {x:POS_ADDR}"
+    IF POS_ADDR < wTileSet || POS_ADDR >= wTileEnd
+    FAIL "CHAR {d:TILE_X} {d:PIXEL_Y} {x:POS_ADDR}"
+    ENDC
+    dw POS_ADDR
+    DEF POS_CUR += 2
+ENDR
+REPT ($8000 - @) / 2
+    dw wTileEnd
+ENDR
+
+SECTION "MapPosDown", ROMX[$4000]
+MapPosDown:
+DEF POS_CUR = wTileSet
+REPT (wTileEnd - wTileSet) / 2
+    DEF POS_ADDR = POS_CUR
+    TileSet2TXPY POS_ADDR
+    ; PRINTLN "TXPY {d:TILE_X} {d:PIXEL_Y}"
+    DEF PIXEL_Y += 1
+    IF PIXEL_Y == SCREEN_HEIGHT_PX
+    DEF PIXEL_Y = 0
+    ENDC
+    TXPY2TileSet TILE_X, PIXEL_Y
+
+    ; PRINTLN "CHAR {d:TILE_X} {d:PIXEL_Y} {x:POS_ADDR}"
+    IF POS_ADDR < wTileSet || POS_ADDR >= wTileEnd
+    FAIL "CHAR {d:TILE_X} {d:PIXEL_Y} {x:POS_ADDR}"
+    ENDC
+    dw POS_ADDR
+    DEF POS_CUR += 2
+ENDR
+REPT ($8000 - @) / 2
+    dw wTileEnd
+ENDR
