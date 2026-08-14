@@ -1,0 +1,5 @@
+# ColorFight
+
+Inspired by @fachi177 's ColorFight (https://tic80.com/play?cart=730). Ported to the Game Boy Color.
+
+Right now, roughly 100 pixels are handled each frame, making it much slower than on TIC-80.
